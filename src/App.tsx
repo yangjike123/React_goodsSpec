@@ -26,7 +26,7 @@ export default () => {
       message.error('请输入规格名称');
     }
   }
-
+  //添加规格值
   function onAddSpecValue(label: string) {
     if (specValue) { // 规格值
       specList.find(t => t.label === label)?.tags.push(specValue);
