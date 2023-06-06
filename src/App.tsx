@@ -121,7 +121,7 @@ export default () => {
       onChange={(e) => setInputSpecName(e.target.value)}
       ref={inputRef}
       placeholder='请输入规格名称，请按下enter键确认'
-      value={inputSpecName}
+      value={inputSpecName} // 绑定input输入框值方便控制清空输入框
     />
   )
   return <div style={{ width: '80%', margin: 'auto' }}>
