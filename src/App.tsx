@@ -5,9 +5,9 @@ import { useEffect } from 'react';
 import { TableData } from './interface';
 // eslint-disable-next-line react-refresh/only-export-components
 export default () => {
-  // ---------变量------------
-  const inputRef = useRef<InputRef>(null);
-  const inputRefValue = useRef<InputRef>(null)
+  // ---------需要用到的变量-----------
+  const inputRef = useRef<InputRef>(null); // 获取输入框
+  const inputRefValue = useRef<InputRef>(null); // 
   const [tableData, setTableData] = useState<TableData[]>([]); // 显示的数据数量
   const [focusInput, setFocusInput] = useState<boolean>(false);
   const [inputVisible, setInputVisible] = useState<boolean>(false);
@@ -70,6 +70,7 @@ export default () => {
         skuItems = [];
       for (let index = 0; index < temp.length; index++) {
         const el = temp[index];
+        //count 记录sku规格 防止sku名称和值 重复
         let count = 0, obj: TableData = { piece: 0, stock: 0 };
         for (let i = 0; i < headers.length; i++) {
           const hader = headers[i];
