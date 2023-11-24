@@ -1,200 +1,197 @@
-import { PlusOutlined, CloseCircleOutlined, CloseOutlined } from '@ant-design/icons';
-import { Table, Popover, Button, Input, InputRef, message, Tag, InputNumber } from 'antd';
-import { useRef, useState } from 'react';
-import { useEffect } from 'react';
-import { TableData } from './interface';
-// eslint-disable-next-line react-refresh/only-export-components
+import { Button, Card, Input, InputRef, message, Popover, Table, Tag } from "antd";
+import { useState, useRef, useEffect } from "react";
+import { PlusOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
+import "./App.css";
+import { SkuData } from "./interface.js";
+interface ISpecTagValue {
+  label: string,
+  tags: string[]
+}
 export default () => {
-  // ---------需要用到的变量-----------
-  const inputRef = useRef<InputRef>(null); // 获取输入框
-  const inputRefValue = useRef<InputRef>(null); // 
-  const [tableData, setTableData] = useState<TableData[]>([]); // 显示的数据数量
-  const [focusInput, setFocusInput] = useState<boolean>(false);
-  const [inputVisible, setInputVisible] = useState<boolean>(false);
-  const [inputValueIndex, setInputValueIndex] = useState<number>(0);
-  const [inputSpecName, setInputSpecName] = useState<string>('');//规格名
-  const [specValue, setSpecValue] = useState<string>(''); //规格值
-  const [specList, setSpecList] = useState<{ label: string, tags: Array<string> }[]>([]); // 规格展示数据
-  const [submitList, setSubmitList] = useState<TableData[]>([])
-  const skuValues = useRef<any>({}); // 规格sku
-  // ---------方法函数------------
-  function onPressEnter() {
-    if (inputSpecName) {
-      specList.push({ label: inputSpecName, tags: [] });
-      setInputSpecName('');
-    } else {
-      message.error('请输入规格名称');
-    }
-  }
-  //添加规格值
-  function onAddSpecValue(label: string) {
-    if (specValue) { // 规格值
-      specList.find(t => t.label === label)?.tags.push(specValue);
-      // 如果有一样的规格名称就push到老的规格值里面
-      if (skuValues.current[label]) skuValues.current[label].push(specValue);
-      else skuValues.current = ({ ...skuValues.current, [label]: [specValue] });
-      tableSKU();
-      setSpecValue('');
-      setInputVisible(false);
-    } else {
-      setInputVisible(false);
-    }
-  }
-  function onDeleteSpecValue(index: number, tagsIndex: number, label: string) { // 删除规格值
-    specList[index].tags.splice(tagsIndex, 1);
-    skuValues.current[label].splice(tagsIndex, 1);//找到相对于的那个sku并删除里面值
-    tableSKU();//重新绘制页面和数据
-  }
-  function onDeleteSpec(label: string) { // 删除规格
-    delete skuValues.current[label];
-    const filterValue = specList.filter(t => t.label !== label);
-    setSpecList(filterValue);
-    tableSKU();//重新绘制页面和数据
-  }
-  function tableSKU() {
-    let temp: any[] = [];
-    if (JSON.stringify(skuValues.current) === '{}') setTableData([]);
-    for (const key in skuValues.current) {
-      const items: Array<string> = skuValues.current[key];
-      if (!temp.length) temp.push(...items.map(t => ({ [key]: t })));
-      else {
-        const i2: any[] = [];
-        temp.forEach(obj => {
-          if (items.length === 0) i2.push(obj);
-          else i2.push(...items.map(t => ({ ...obj, [key]: t })));
-        })
-        temp = i2;
-      }
-      setTableData(temp);
-      const headers = Object.keys(skuValues.current),
-        skuItems = [];
-      for (let index = 0; index < temp.length; index++) {
-        const el = temp[index];
-        //count 记录sku规格 防止sku名称和值 重复
-        let count = 0, obj: TableData = { piece: 0, stock: 0 };
-        for (let i = 0; i < headers.length; i++) {
-          const hader = headers[i];
-          if (hader) {
-            count++;
-            const oldValue = submitList[index];//防止输入的数据丢失
-            if (oldValue) {
-              obj = {
-                ...obj,
-                [`skuName${count}`]: hader,
-                [`skuValue${count}`]: el[hader],
-                piece: oldValue.piece || 0,
-                stock: oldValue.stock || 0,
-                id: oldValue.id,
-              };
-            } else {
-              obj = {
-                ...obj,
-                [`skuName${count}`]: hader,
-                [`skuValue${count}`]: el[hader],
-                id: Number(Date.now) + index + i,
-              };
-            }
+  const [submitList, setSubmitList] = useState<SkuData[]>([]); // 提交数据
+  const [spec, setSpec] = useState<any[]>([]);
 
-          }
-        }
-        skuItems.push(obj);
-      }
-      setSubmitList(skuItems);
+  const [specContent, setSpecContent] = useState<ISpecTagValue[]>([]); //规格内容
+
+  const [specLabelStr, setSpecLabelStr] = useState<string>('');// 规格名称输入值
+  const [visible, setVisible] = useState<boolean>(false); // 点击添加规格按钮控制获取input 元素,控制输入默认选择focus
+  const inputRef = useRef<InputRef>(null);// 规格输入框
+
+  const [inputVisible, setInputVisible] = useState<boolean>(false);
+  const [inputTagValue, setInputTagValue] = useState<string>('');
+  const [tagIndex, setTagIndex] = useState<number | null>(null)
+  const tagInputRef = useRef(null);
+
+
+  // 添加规格名称
+  function onAddSpecLabel() {
+    if (specLabelStr) {
+      setSpecContent(specContent.concat({ label: specLabelStr, tags: [] }));
+      setSpecLabelStr('');
+      message.success('添加规格明成功');
+      tableSku();
+    } else {
+      message.error('请填写规格名称');
     }
-    return temp;
   }
-  // ---------生命周期------------
+
+  // 删除规格
+  function onDeleteSpec(index: number) {
+    const specList = [...specContent];
+    specList.splice(index, 1);
+    setSpecContent(specList);
+    message.success('删除规格成功');
+    tableSku();
+  }
+
+  // 添加规格值
+  function onAddSpecTag(index: number) {
+    if (inputTagValue) {
+      const specList = [...specContent];
+      specList[index].tags.push(inputTagValue);
+      setSpecContent(specList);
+      setInputTagValue('');// 清空输入内容
+      tableSku();
+      message.success('添加规格值成功');
+    };
+    setInputVisible(false);
+  }
+
+  function onDeleteSpecTag(labelIndex: number, tagIndex: number) {
+    const specList = [...specContent];
+    specList[labelIndex].tags.splice(tagIndex, 1);
+    setSpecContent(specList);
+    tableSku();
+  }
+  function tableSku() {// 绘制商品规格sku
+    let temp: any[] = [];
+    specContent.forEach((item, index) => {
+      if (!temp.length) {
+        // specContent当只有一个数据时候只需要
+        temp.push(...item.tags.map(str => {
+          const oldItem = submitList.find(t => t.sku === str);
+          if (oldItem) {
+            return { ...oldItem };
+          } else {
+            return {
+              [`skuName${index + 1}`]: item.label,
+              [`skuValue${index + 1}`]: str,
+              [item.label]: str,
+              stock: 0,
+              sku: str
+            }
+          }
+        }))
+      } else {
+        const array: SkuData[] = [];
+        temp.forEach(obj => {
+          if (item.tags.length === 0) array.push(obj);
+          array.push(
+            ...item.tags.map(t => {
+              obj.sku && (obj.sku = obj.sku + t);
+              const oldItem = submitList.find(t => t.suk === obj.sku);
+              if (oldItem) {
+                return { ...oldItem };
+              } else {
+                return {
+                  ...obj,
+                  [`skuName${index + 1}`]: item.label,
+                  [`skuValue${index + 1}`]: t,
+                  [item.label]: t,
+                  stock: 0,
+                  piece: 0
+                };
+              }
+            })
+          )
+        });
+        temp = array;
+      }
+    });
+    setSubmitList(temp);
+  }
+  useEffect(() => {
+    console.log(submitList, 'SubmitList')
+  }, [specContent])
   useEffect(() => {
     inputRef.current?.focus();
-    return () => {
-      setFocusInput(false);
-    };
-  }, [focusInput]);
+  }, [visible])
   useEffect(() => {
-    inputRefValue.current?.focus()
-  }, [inputVisible])
-  // ----------HTML-----------
-  const content = (
+    (tagInputRef.current as any)?.childNodes[1].focus();
+    (tagInputRef.current as any)?.childNodes[0].focus();
+  }, [inputVisible, tagIndex])
+
+  const columns: any[] = [
+    ...specContent.map(t => {
+      return {
+        title: t.label,
+        render: (item: any) => {
+          return item[t.label]
+        }
+      }
+    }),
+
+  ]
+  const ElInputContent = () => (
     <Input
-      style={{ width: 300 }}
-      onPressEnter={onPressEnter}
-      onChange={(e) => setInputSpecName(e.target.value)}
       ref={inputRef}
-      placeholder='请输入规格名称，请按下enter键确认'
-      value={inputSpecName} // 绑定input输入框值方便控制清空输入框
+      value={specLabelStr}
+      style={{ width: 350 }}
+      placeholder="请输入规格名称 按下Enter键确认"
+      onPressEnter={onAddSpecLabel}
+      onChange={(value) => setSpecLabelStr(value.target.value)}
+      addonAfter={<span style={{ cursor: 'pointer' }} onClick={onAddSpecLabel}>确认添加</span>}
     />
-  )
-  return <div style={{ width: '80%', margin: 'auto' }}>
-    <div style={{ textAlign: 'center' }}>
-      <Popover content={content} trigger="click">
-        <Button onClick={() => { setFocusInput(true) }}>添加规格</Button>
-      </Popover>
-    </div>
-    <div>
-      {specList.map(({ label, tags }, index) => {
-        return <div key={index}>
-          <div>
-            <h3>{label}<CloseOutlined onClick={() => onDeleteSpec(label)} /></h3>
-          </div>
-          <div style={{ display: 'flex' }}>
-            {tags.map((t, tagsIndex) => (<Tag icon={<CloseCircleOutlined onClick={() => onDeleteSpecValue(index, tagsIndex, label)} />} key={tagsIndex}>{t}</Tag>))}
-            <div>
-              {inputVisible && inputValueIndex === index ? (
-                <Input
-                  ref={inputRefValue}
-                  value={specValue}
-                  onChange={(e) => setSpecValue(e.target.value)}
-                  onPressEnter={() => onAddSpecValue(label)}
-                  onBlur={() => onAddSpecValue(label)}
-                  placeholder='请输入规格值'
-                  size="small"
-                />
-              ) : (
-                <Tag style={{ cursor: 'pointer' }} onClick={() => {
-                  setInputVisible(true);
-                  setInputValueIndex(index);
-                }}>
-                  <PlusOutlined /> 新增规格值
-                </Tag>
-              )}
+  );
+  return <div >
+    <div style={{ width: '65%', margin: '130px auto' }} >
+      <Card title="商品规格" extra={
+        <Popover placement="bottomLeft" trigger="click" content={ElInputContent}>
+          <Button type="dashed" icon={<PlusOutlined />} onClick={() => setVisible(!visible)} >添加规格</Button>
+        </Popover>
+      }>
+        <div>
+          {specContent.map((item, index) => {
+            return <div key={index}>
+              <h3>
+                <span style={{ marginRight: 12 }}>{item.label}</span>
+                <DeleteOutlined onClick={() => onDeleteSpec(index)} style={{ color: 'red' }} />
+              </h3>
+              <div style={{ display: 'flex', alignItems: 'center' }} ref={tagInputRef}>
+                <div> {item.tags.map((str, strKey) => (
+                  <Tag
+                    style={{ fontSize: 16 }}
+                    color="processing" key={strKey}>
+                    <span>{str}</span>
+                    <CloseOutlined onClick={() => onDeleteSpecTag(index, strKey)} />
+                  </Tag>
+                ))}</div>
+                {
+                  inputVisible && index === tagIndex ?
+                    <Input
+                      placeholder="请输入规格值"
+                      value={inputTagValue}
+                      size="small"
+                      style={{ width: 120 }}
+                      onChange={(e) => setInputTagValue(e.target.value)}
+                      onBlur={() => onAddSpecTag(index)}
+                      onPressEnter={() => onAddSpecTag(index)}
+                    /> :
+                    <Tag
+                      icon={<PlusOutlined />}
+                      style={{ cursor: 'pointer' }}
+                      onClick={() => {
+                        setTagIndex(index);
+                        setInputVisible(!inputVisible)
+                      }}
+                    >添加规格值</Tag>
+                }
+              </div>
             </div>
-          </div>
+          })}
         </div>
-      })}
+        <Table rowKey={'sku'} dataSource={submitList} columns={columns} />
+      </Card>
     </div>
-    <Table rowKey={'id'} columns={[
-      ...specList.map((t, i) => {
-        return {
-          title: t.label,
-          render: (record: any) => {
-            return record[t.label]
-          }
-        }
-      }),
-      {
-        title: '价格',
-        dataIndex: 'piece',
-        key: 'piece',
-        render: (value, record, index) => {
-          return <InputNumber onChange={(e) => {
-            submitList[index].piece = e;
-            setSubmitList(submitList)
-            console.log('submitList: ', submitList);
-          }} defaultValue={0} precision={2} style={{ width: '100%' }} />
-        }
-      },
-      {
-        title: '库存',
-        dataIndex: 'stock',
-        key: 'stock',
-        render: (value, record, index) => {
-          return <InputNumber onChange={(e) => {
-            submitList[index].stock = e;
-            setSubmitList(submitList)
-            console.log('submitList: ', submitList);
-          }} defaultValue={0} precision={0} style={{ width: '100%' }} />
-        }
-      }]
-    } dataSource={tableData} />
   </div>
 }
