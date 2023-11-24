@@ -145,10 +145,12 @@ export default () => {
   );
   return <div >
     <div style={{ width: '65%', margin: '130px auto' }} >
-      <Card title="商品规格" extra={
+      <Card title={
         <Popover placement="bottomLeft" trigger="click" content={ElInputContent}>
           <Button type="dashed" icon={<PlusOutlined />} onClick={() => setVisible(!visible)} >添加规格</Button>
         </Popover>
+      } extra={
+        <h3>商品规格</h3>
       }>
         <div>
           {specContent.map((item, index) => {
