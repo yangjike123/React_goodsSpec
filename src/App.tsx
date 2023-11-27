@@ -1,4 +1,4 @@
-import { Button, Card, Input, InputRef, message, Popover, Table, Tag } from "antd";
+import { Button, Card, Input, InputNumber, InputRef, message, Popover, Table, Tag } from "antd";
 import { useState, useRef, useEffect } from "react";
 import { PlusOutlined, DeleteOutlined, CloseOutlined } from '@ant-design/icons';
 import "./App.css";
@@ -9,14 +9,10 @@ interface ISpecTagValue {
 }
 export default () => {
   const [submitList, setSubmitList] = useState<SkuData[]>([]); // 提交数据
-  const [spec, setSpec] = useState<any[]>([]);
-
   const [specContent, setSpecContent] = useState<ISpecTagValue[]>([]); //规格内容
-
   const [specLabelStr, setSpecLabelStr] = useState<string>('');// 规格名称输入值
   const [visible, setVisible] = useState<boolean>(false); // 点击添加规格按钮控制获取input 元素,控制输入默认选择focus
   const inputRef = useRef<InputRef>(null);// 规格输入框
-
   const [inputVisible, setInputVisible] = useState<boolean>(false);
   const [inputTagValue, setInputTagValue] = useState<string>('');
   const [tagIndex, setTagIndex] = useState<number | null>(null)
@@ -56,13 +52,14 @@ export default () => {
     };
     setInputVisible(false);
   }
-
+  //删除规格值 
   function onDeleteSpecTag(labelIndex: number, tagIndex: number) {
     const specList = [...specContent];
     specList[labelIndex].tags.splice(tagIndex, 1);
     setSpecContent(specList);
     tableSku();
   }
+  
   function tableSku() {// 绘制商品规格sku
     let temp: any[] = [];
     specContent.forEach((item, index) => {
@@ -78,6 +75,7 @@ export default () => {
               [`skuValue${index + 1}`]: str,
               [item.label]: str,
               stock: 0,
+              piece: 0,
               sku: str
             }
           }
@@ -89,7 +87,7 @@ export default () => {
           array.push(
             ...item.tags.map(t => {
               obj.sku && (obj.sku = obj.sku + t);
-              const oldItem = submitList.find(t => t.suk === obj.sku);
+              const oldItem = submitList.find(t => t.sku === obj.sku);
               if (oldItem) {
                 return { ...oldItem };
               } else {
@@ -130,7 +128,32 @@ export default () => {
         }
       }
     }),
-
+    {
+      title: '价格',
+      render: (item: SkuData, _: SkuData, index: number) => {
+        return <InputNumber
+          min={0}
+          defaultValue={submitList[index].piece}
+          onChange={(e) => {
+            submitList[index].piece = e || 0
+            setSubmitList(submitList);
+          }}
+        />
+      }
+    },
+    {
+      title: '库存',
+      render: (item: SkuData, _: SkuData, index: number) => {
+        return <InputNumber
+          min={0}
+          defaultValue={submitList[index].stock}
+          onChange={(e) => {
+            submitList[index].stock = e || 0
+            setSubmitList(submitList);
+          }}
+        />
+      }
+    }
   ]
   const ElInputContent = () => (
     <Input
@@ -192,7 +215,7 @@ export default () => {
             </div>
           })}
         </div>
-        <Table rowKey={'sku'} dataSource={submitList} columns={columns} />
+        <Table rowKey={'sku'} dataSource={submitList} columns={columns} pagination={false} />
       </Card>
     </div>
   </div>
